@@ -3,20 +3,26 @@
 # We will be using an adapted dataset from a Dryad deposit as an example: https://doi.org/10.5061/dryad.dz08kprw0
 # Please refer to the insert-record.csv, methods.md, abstract.md and README-losapio.txt files to complete this exercise.
 
-# If you haven't yet, time two install two required packages
-
-install.packages("EML")
-install.packages("emld") #an effective back-end for other 'R'-based tools working with 'EML
 
 # Load Packages
 
 # Starting our EML Record
 # Describing the Coverage (Temporal and Geographic)
 
-geographicDescription <- 
+library(tidyverse)
+library(EML)
+library(emld)
+library(here)
+
+setwd(here::here())
+
+# Read the Dataset
+insect_records <- read_csv("week6/insect-record.csv")
+
+geographicDescription <- "Loma del Mulhacen, Sierra Nevada, Andalucia, Spain"
 
 coverage <- 
-  set_coverage(begin = , end = ,
+  set_coverage(begin = "2015-07-01", end = "2015-07-31",
                geographicDescription = geographicDescription,
                west = -3.30, east = -3.30, # bounding coordinates calculated bassed on lat. and long.
                north = 37.05, south = 37.05,
@@ -24,45 +30,42 @@ coverage <-
                altitudeUnits = "meter")
 
 # Methods
-# You may copy it or call the .md file
 
-# Creating parties
-
-# Persons and Organizations appear in multiple places in and EML document. R has a native object class R_person
+methods_file <- "week6/methods.md"
+methods <- set_methods(methods_file)
 
 
-# Publisher
-  
-  
-# Contact Info  
- 
-
-# Time for some keywords! As we learned these are important for findability.
-# We will create a keywordSet which is essentially a list of lists
-# We may also refer to controlled vocabularies and specific thesaurus for terms such as LTER's (https://vocab.lternet.edu/)
-
-
-# Publication Date
+losapio <- eml$creator(
+  individualName = eml$individualName(
+    givenName = "Gianalberto",
+    surName = "Losapio"),
+  electronicMailAddress = "losapiog@stanford.edu")
     
+publisher <- "Standford University"
 
-# Title
+pubDate <- "2021"
 
-
-# Abstract
-# You may copy it or call the .md file
-
+title <- "Plant-pollinator observations for: An experimental approach to assessing the impact of ecosystem engineers on biodiversity and ecosystem functions"
 
 
-# Licensing and Rights
+contact <- list(
+  individualName = "losapio$individualName",
+  electronicMailAddress = losapio$electronicMailAddress,
+  organizationName = "Standford University")
+
+abstract_file <- "./abstract.md"
+
+abstract_set <- set_TextType(abstract_file)
+
+intellectualRights <- "Creative Commons CC0 License"
 
 
 # Time to create our dataset element!
 
 dataset <- list(
   title = title,
-  creator = giadalberto,
-  pubDate = pubDate,
-  ...)
+  creator = losapio,
+  pubDate = pubDate)
 
 # We should now create our root element for EML which will hang everything else
 
