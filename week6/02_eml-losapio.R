@@ -24,7 +24,7 @@ geographicDescription <- "Loma del Mulhacen, Sierra Nevada, Andalucia, Spain"
 coverage <- 
   set_coverage(begin = "2015-07-01", end = "2015-07-31",
                geographicDescription = geographicDescription,
-               west = -3.30, east = -3.30, # bounding coordinates calculated bassed on lat. and long.
+               west = -3.30, east = 3.30, 
                north = 37.05, south = 37.05,
                altitudeMin = 600, altitudeMaximum = 3396,
                altitudeUnits = "meter")
