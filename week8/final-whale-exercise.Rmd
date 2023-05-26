@@ -1,0 +1,150 @@
+---
+title: "sdcmicro-exercise"
+author: " Erica Dale, Colleen McCamy, Javier Patrón"
+date: "2023-05-24"
+output: html_document
+---
+
+# Whale Entanglement sdcMicro Exercise
+
+Your team acquired a dataset\* from researchers working with [whale entanglement data on the West Coast](https://drive.google.com/file/d/1MemLmCRFtkyakWJOH_8iosGIMRKfsQVv/view?usp=share_link). The dataset contains both direct and indirect identifiers. Your task is to assess the risk of re-identification of the fisheries associated with the cases before considering public release. Then, you should test one technique and apply k-anonymization to help lower the disclosure risk as well as compute the information loss.
+
+Please complete this exercise in pairs or groups of three. Each group should download the dataset and complete the rmd file, including the code and answering the questions. Remember to include your names in the YAML.
+
+*\*This dataset was purposefully adapted exclusively for instruction use.*
+
+#### *Setup*
+
+```{r}
+library(sdcMicro)
+library(tidyverse)
+```
+
+
+#### Package & Data
+
+```{r}
+whale_data <- read_csv("week8/whale-sdc.csv")
+```
+
+#### Inspect the Dataset
+
+```{r}
+variables <- colnames(whale_data)
+print(variables)
+
+head(whale_data)
+str(whale_data)
+
+```
+
+#### **Q1. How many direct identifiers are present in this dataset? What are they?**
+
+A: There appears to be two direct identifiers in the whale data. These include fishery_license and case_id.
+
+#### **Q2. What attributes would you consider quasi-identifiers? Why?**
+
+A: I would consider county, state, lat, long, gear and origin could be quasi-identifiers when paired with other variables.
+
+#### **Q3. What types of variables are they? Define them. (numeric, integer, factor or string)**
+
+Make sure to have them set correctly.
+
+```{r}
+whale_data_clean <- whale_data |> 
+  varToFactor(var = c("year","month", "type","county","state", "inj_level", "condition", "origin","gear", "fine", "infraction_type"))
+
+class(whale_data_clean$fishery_license)
+
+
+```
+
+#### ***4 Considering your answers to questions 1, 2 and 3 create a SDC problem.***
+
+```{r}
+
+sdcInitial <- createSdcObj(dat = whale_data_clean,
+                       keyVars=c("year","month", "type","county","state", "inj_level", "condition", "origin","gear", "fine", "infraction_type"),
+                       numVars=c("lat", "long"),
+                       weightVar=NULL,
+                       hhId=NULL,
+                       strataVar=NULL,
+                       pramVars=NULL,
+                       excludeVars=c("fishery_license"),
+                       seed=0,
+                       randomizeRecords=FALSE,
+                       alpha=c(1))
+
+```
+
+
+#### **Q4.1 What is the risk of re-identification for this dataset?**
+
+```{r}
+sdcInitial@risk$global$risk
+```
+
+
+#### Q4.2 To what extent does this dataset violate k-anonymity?
+
+```{r}
+
+print(sdcInitial, 'kAnon')
+
+```
+
+#### *5. Consider techniques that could reduce the risk of re-identification.*
+
+#### Q5.1 Apply one non-perturbative method to a variable of your choice. How effective was it in lowering the disclosure risk?
+
+```{r}
+table(sdcInitial@manipKeyVars$gear)
+
+sdcInitial <- groupAndRename(obj = sdcInitial, var = c("gear"),
+                             before = c("drift_gillnet","gillnet","net"),
+                             after = c("nets"))
+
+sdcInitial <- groupAndRename(obj = sdcInitial, var = c("gear"),
+                             before = c("line_buoys","longline","slack _lines"),
+                             after = c("lines"))
+
+sdcInitial <- groupAndRename(obj = sdcInitial, var = c("gear"),
+                             before = c("pot","trap"),
+                             after = c("other"))
+
+sdcInitial@risk$global$risk
+```
+
+It did not reduce the risk! Lets try with the `kAnon` method
+
+#### Q5.2 Apply ( k-3) anonymization to this dataset.
+
+```{r}
+sdc_Initial <- kAnon(sdcInitial, k = c(5))
+sdc_Initial@risk$global$risk
+```
+
+#### Q6. Compute the information loss for the de-identified version of the dataset.
+
+```{r}
+namesKeyVars <- names(sdc_Initial@manipKeyVars)
+
+# Matrix to store the number of missing values (NA) before and after anonymization
+NAcount <- matrix(NA, nrow = 2, ncol = length(namesKeyVars))
+colnames(NAcount) <- c(paste0('NA', namesKeyVars)) # column names
+rownames(NAcount) <- c('initial', 'treated') # row names
+
+# NA count in all key variables (NOTE: only those coded NA are counted)
+for(i in 1:length(namesKeyVars)) {
+  NAcount[1, i] <- sum(is.na(sdc_Initial@origData[,namesKeyVars[i]]))
+  NAcount[2, i] <- sum(is.na(sdc_Initial@manipKeyVars[,i]))}
+
+# Show results
+NAcount
+```
+
+The `KAnon()` method from the sdcMicro package is a strong approach to anonymize data, although it may not replace all potential variable identifications. As we can see in this exercie is highly effective as it reduced the risk from 99% to 12%. This will help with data privacy and reducing the risk of re-identification. 
+
+To further enhance protection, consider using broader categories like states or regions instead of specific counties, and anonymizing information related to the origin of fishing boats. Merely grouping by the type of fishing is insufficient for robust re-identification risk reduction.
+
+
